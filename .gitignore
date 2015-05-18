@@ -1,0 +1,45 @@
+
+# rbenv
+.ruby-version
+
+# bundler
+.bundle
+
+# jeweler generated
+pkg
+
+# test script
+test
+
+# simplecov code coverage directory
+coverage
+
+# Yard doc
+doc
+.yardoc
+#
+Gemfile.lock
+
+# graphviz dot file
+*.dot
+
+# MacOS:
+.DS_Store
+
+# IntelliJ
+.rakeTasks
+jenkins_api_client.i*
+
+# Rubymine
+.idea
+
+# vim, emacs, textmate
+*~
+\#*
+.\#*
+*.tmproj
+tmtags
+*.swp
+
+# Skip the log file
+jenkins_api_client.log
