@@ -30,9 +30,17 @@ class JenkinsMonitor
     STDERR.puts "[#{Time.now}] #{msg.red}"
   end
 
-  def check_queued_jobs
-    client.queue.list.each { |job| p(client.queue.get_age(job)) }
+  def print_info(msg)
+    STDERR.puts "[#{Time.now}] #{msg.green}"
+  end
 
+  def check_queued_jobs
+    client.queue.list.each do |job|
+      print_info "Queued for #{client.queue.get_age(job)/60} minutes"
+      print_info "#{job} is blocked? #{client.queue.is_blocked?(job)} is buildable? #{client.queue.is_buildable?(job)}"
+      print_now 'Possible problem building. Check slaves.' if client.queue.is_buildable?(job)
+      print_info "#{job}: #{client.queue.get_reason(job)}"
+    end
   end
 
   def check_slave_status
