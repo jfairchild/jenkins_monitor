@@ -39,7 +39,25 @@ class JenkinsMonitor
       print_info "Queued for #{client.queue.get_age(job)/60} minutes"
       print_info "#{job} is blocked? #{client.queue.is_blocked?(job)} is buildable? #{client.queue.is_buildable?(job)}"
       print_now 'Possible problem building. Check slaves.' if client.queue.is_buildable?(job)
-      print_info "#{job}: #{client.queue.get_reason(job)}"
+
+      blocking_reason = client.queue.get_reason(job)
+      print_info "#{job}: #{blocking_reason}"
+
+      next if ALLOWED_BLOCKING_REASONS.any? { |reason| blocking_reason =~ reason }
+
+      next if need_more_nodes?(blocking_reason)
+
+      raise "Investigate #{job}. Enqueued for #{(enqueued_time/60).round(2)} minutes" if client.queue.is_buildable?(job) && enqueued_time > QUEUE_WAIT_MAX_SECONDS
+    end
+  end
+
+  def has_available_executors(node_names)
+    node_names.each do |node|
+      begin
+        return true if client.node.get_node_numExecutors(node) > 0
+      rescue TypeError
+        next
+      end
     end
   end
 
