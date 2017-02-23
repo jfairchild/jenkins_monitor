@@ -1,24 +1,5 @@
-
-# rbenv
-.ruby-version
-
 # bundler
 .bundle
-
-# jeweler generated
-pkg
-
-# test script
-test
-
-# simplecov code coverage directory
-coverage
-
-# Yard doc
-doc
-.yardoc
-#
-Gemfile.lock
 
 # graphviz dot file
 *.dot
