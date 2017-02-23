@@ -6,8 +6,8 @@ require 'colorize'
 class JenkinsMonitor
   CLIENT_FILE = '~/.jenkins_api_client/login.yml'
   QUEUE_WAIT_MAX_SECONDS = 600 # 10 minutes
-  IGNORED_JOBS = %w(minijenkins ios android).freeze
-  IGNORED_NODES = %w(MiniJenkins).freeze
+  IGNORED_JOBS = %w(example).freeze
+  IGNORED_NODES = %w(example).freeze
   ALLOWED_BLOCKING_REASONS = [/\ABuild #\d[\d,]+ is already in progress/,
     /\AUpstream project [A-Za-z0-9_\-]+ is already building.\z/,
     /\ABlocking job [A-Za-z0-9_\-]+ is running.\z/].freeze
