@@ -1,22 +1,28 @@
 #!/usr/bin/env ruby
-$LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
-require_relative '../lib/jenkins_api_client'
-require_relative '../lib/jenkins_api_client/node'
+
+require 'jenkins_api_client'
 require 'colorize'
 
 class JenkinsMonitor
-  CLIENT_FILE= '~/.jenkins_api_client/login.yml'
-  QUEUE_WAIT_MAX_SECONDS = 1200 # 20 minutes
-  SLAVE_WAIT_MAX = 1200 # 20 minutes
+  CLIENT_FILE = '~/.jenkins_api_client/login.yml'
+  QUEUE_WAIT_MAX_SECONDS = 600 # 10 minutes
+  IGNORED_JOBS = %w(minijenkins ios android).freeze
+  IGNORED_NODES = %w(MiniJenkins).freeze
+  ALLOWED_BLOCKING_REASONS = [/\ABuild #\d[\d,]+ is already in progress/,
+    /\AUpstream project [A-Za-z0-9_\-]+ is already building.\z/,
+    /\ABlocking job [A-Za-z0-9_\-]+ is running.\z/].freeze
 
   def self.go
     monitor = JenkinsMonitor.new
+    monitor.delete_offline_slaves
     monitor.check_queued_jobs
-    delete_slaves = monitor.check_slave_status
-    delete_slaves.each { |slave| print_now "#{slave} should be deleted..." }
+  end
 
-    raise "There are #{delete_slaves.count} slaves to delete." if delete_slaves.count > 1
-    raise "There's one slave to delete." if delete_slaves.count == 1
+  def self.check_for_running_slave(node_name)
+    monitor = JenkinsMonitor.new
+    node_names = monitor.client.node.list(node_name)
+
+    raise "No available running nodes with name like: #{node_name}" unless monitor.has_available_executors(node_names)
   end
 
   def initialize
@@ -34,12 +40,37 @@ class JenkinsMonitor
     STDERR.puts "[#{Time.now}] #{msg.green}"
   end
 
+  def need_more_nodes?(blocking_reason)
+    more_nodes_required = false
+    match = /\AWaiting for next available executor on ([a-z_]+)/.match(blocking_reason)
+    unless match.nil? || match[1].nil?
+      more_nodes_required = true unless client.api_get_request("/label/#{match[1]}")['nodes'].nil?
+      launch_node(match[1]) if ENV['LAUNCH_NODES']
+    end
+    more_nodes_required
+  end
+
+  def launch_node(node_label)
+    print_info "launching node for label: #{node_label}"
+    nodes = client.api_get_request("/label/#{node_label}")['nodes']
+    unless nodes.nil? || nodes.empty?
+      node = nodes[0]['nodeName'].split(' ')[0]
+      client.api_post_request('/cloud/ec2-us-east-1/provision', { template: node }) {|res|
+        print_info "CODE [#{res}] MESSAGE: [#{res.message}]"
+        print_info(res.body) if res.body_permitted?
+      }
+    end
+  end
+
   def check_queued_jobs
-    client.queue.list.each do |job|
-      print_info "Queued for #{client.queue.get_age(job)/60} minutes"
+    queued_jobs = client.queue.list
+    print_info 'No queued jobs.' if queued_jobs.empty?
+    queued_jobs.each do |job|
+      next if IGNORED_JOBS.any? { |ignored| job =~ /\A#{ignored}*/ }
+      enqueued_time = client.queue.get_age(job) || 0
+      print_info "#{job} Queued for #{(enqueued_time/60).round(1)} minutes"
       print_info "#{job} is blocked? #{client.queue.is_blocked?(job)} is buildable? #{client.queue.is_buildable?(job)}"
       print_now 'Possible problem building. Check slaves.' if client.queue.is_buildable?(job)
-
       blocking_reason = client.queue.get_reason(job)
       print_info "#{job}: #{blocking_reason}"
 
@@ -59,24 +90,41 @@ class JenkinsMonitor
         next
       end
     end
+    false
   end
 
-  def check_slave_status
+  def is_offline_after_waiting?(node)
+    wait = 2
+    (1..7).each do
+      print_info "#{node} is #{client.node.is_offline?(node) ? 'offline' : 'online'}"
+      sleep(wait+=wait)
+      return client.node.is_offline?(node) unless client.node.is_offline?(node)
+    end
+    print_now "#{node} is #{client.node.is_offline?(node) ? 'offline' : 'online'}"
+    print_now "#{node} offline cause: #{client.node.get_node_offlineCause(node)}"
+    client.node.is_offline?(node)
+  end
+
+  def delete_offline_slaves
     offline_nodes = client.node.list.select do |node|
-      client.node.is_offline?(node)
+      client.node.is_offline?(node) && !IGNORED_NODES.include?(node)
     end
 
-    print_now "#{offline_nodes.count} offline nodes"
+    offline_nodes.empty? ? print_info('No offline nodes.') : print_now("#{offline_nodes.count} offline node(s)")
+
     offline_nodes.select do |node|
-      print_now "Offline cause: #{client.node.get_node_offlineCause(node)}"
-      config_xml = Nokogiri::XML(client.node.get_config(node)) { |config| config.noblanks }
-      launch_time = config_xml.search('.//launchTime').children[0].text
-      uptime = Time.now.utc - Time.parse(launch_time)
-      uptime > SLAVE_WAIT_MAX
+      print_now "[#{node}] Offline cause: [#{client.node.get_node_offlineCause(node)}]"
+      print_now "[#{node}] get_node_monitorData #{client.node.get_node_monitorData(node)}"
+      print_now "[#{node}] get_node_oneOffExecutors #{client.node.get_node_oneOffExecutors(node)}"
+      print_now "[#{node}] get_node_numExecutors #{client.node.get_node_numExecutors(node)}"
+
+      client.node.delete(node) if is_offline_after_waiting?(node) && client.node.get_node_offlineCause(node).nil?
     end
   end
 end
 
 if __FILE__ == $0
-  JenkinsMonitor.go
+  puts ARGV[0]
+  JenkinsMonitor.go if ARGV[0].nil?
+  JenkinsMonitor.check_for_running_slave(ARGV[0]) unless ARGV[0].nil?
 end
