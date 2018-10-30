@@ -1,7 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'bundler', '> 1.13'
-gem 'nokogiri', '~> 1.6.0'
+gem 'bundler', '> 1.17'
 gem 'thor', '>= 0.16.0'
 gem 'json', '>= 0'
 gem 'terminal-table', '>= 1.4.0'
