@@ -5,6 +5,7 @@ gem 'thor', '>= 0.16.0'
 gem 'json', '>= 0'
 gem 'terminal-table', '>= 1.4.0'
 gem 'mixlib-shellout', '>= 1.1.0'
+gem "nokogiri", ">= 1.8.2"
 gem 'faraday', '>= 0.9.1'
 gem 'colorize'
 gem 'jenkins_api_client'
