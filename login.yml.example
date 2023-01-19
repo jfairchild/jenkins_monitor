@@ -1,0 +1,5 @@
+---
+server_url: # update with your Jenkins server URL
+ssl: true
+username: admin@jenkins.example.com
+password: <jenkins token generated for user>
