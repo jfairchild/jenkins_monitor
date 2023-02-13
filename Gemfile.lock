@@ -73,7 +73,7 @@ GEM
     multi_json (1.15.0)
     multi_xml (0.6.0)
     multipart-post (2.2.3)
-    nokogiri (1.14.0)
+    nokogiri (1.14.2)
       mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
     oauth2 (1.4.11)
@@ -135,7 +135,7 @@ DEPENDENCIES
   jeweler (>= 1.6.4)
   json
   mixlib-shellout (>= 1.1.0)
-  nokogiri (~> 1.13)
+  nokogiri (~> 1.14)
   pry
   rspec (~> 2.14.1)
   simplecov
