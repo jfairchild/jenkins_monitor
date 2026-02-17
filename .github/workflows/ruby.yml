@@ -30,7 +30,7 @@ jobs:
             echo "Error: Dockerfile not found"
             exit 1
           fi
-          DOCKERFILE_RUBY_VERSION=$(grep -o 'FROM ruby:[0-9][0-9.]*' Dockerfile | cut -d':' -f2)
+          DOCKERFILE_RUBY_VERSION=$(grep -o 'FROM ruby:[0-9.]*' Dockerfile | cut -d':' -f2)
           if [ -z "$DOCKERFILE_RUBY_VERSION" ]; then
             echo "Error: Could not extract Ruby version from Dockerfile"
             exit 1
