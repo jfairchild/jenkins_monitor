@@ -26,7 +26,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify Dockerfile Ruby version matches workflow
         run: |
-          DOCKERFILE_RUBY_VERSION=$(grep -o 'FROM ruby:[0-9.]*' Dockerfile | cut -d':' -f2)
+          if [ ! -f Dockerfile ]; then
+            echo "Error: Dockerfile not found"
+            exit 1
+          fi
+          DOCKERFILE_RUBY_VERSION=$(grep -o 'FROM ruby:[0-9][0-9.]*' Dockerfile | cut -d':' -f2)
+          if [ -z "$DOCKERFILE_RUBY_VERSION" ]; then
+            echo "Error: Could not extract Ruby version from Dockerfile"
+            exit 1
+          fi
           if [ "$DOCKERFILE_RUBY_VERSION" != "$RUBY_VERSION" ]; then
             echo "Error: Dockerfile Ruby version ($DOCKERFILE_RUBY_VERSION) does not match workflow Ruby version ($RUBY_VERSION)"
             exit 1
