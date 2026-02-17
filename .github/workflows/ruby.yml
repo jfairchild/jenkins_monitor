@@ -22,6 +22,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Dockerfile Ruby version matches workflow
+        run: |
+          WORKFLOW_RUBY_VERSION="3.2"
+          DOCKERFILE_RUBY_VERSION=$(grep -oP 'FROM ruby:\K[0-9.]+' Dockerfile)
+          if [ "$DOCKERFILE_RUBY_VERSION" != "$WORKFLOW_RUBY_VERSION" ]; then
+            echo "Error: Dockerfile Ruby version ($DOCKERFILE_RUBY_VERSION) does not match workflow Ruby version ($WORKFLOW_RUBY_VERSION)"
+            exit 1
+          fi
+          echo "Ruby versions match: $WORKFLOW_RUBY_VERSION"
       - name: Set up Ruby
         # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
         # change this to (see https://github.com/ruby/setup-ruby#versioning):
