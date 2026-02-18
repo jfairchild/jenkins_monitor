@@ -8,7 +8,7 @@ gem "nokogiri", "~> 1.14"
 gem 'thor', '>= 0.16.0'
 gem 'terminal-table', '>= 1.4.0'
 gem 'mixlib-shellout', '>= 1.1.0'
-gem 'jenkins_api_client', '~> 1.5'
+gem 'jenkins_api_client', '~> 2.3'
 
 group :development do
   gem 'jeweler', '>= 1.6.4'
