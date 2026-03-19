@@ -68,7 +68,7 @@ GEM
       rake
       rdoc
       semver
-    json (2.18.1)
+    json (2.19.2)
     jwt (2.6.0)
     logger (1.7.0)
     method_source (1.0.0)
