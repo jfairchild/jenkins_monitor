@@ -23,7 +23,7 @@ jobs:
       RUBY_VERSION: '3.2'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Verify Dockerfile Ruby version matches workflow
         run: |
           if [ ! -f Dockerfile ]; then
