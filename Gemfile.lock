@@ -69,7 +69,7 @@ GEM
       rake
       rdoc
       semver
-    json (2.18.1)
+    json (2.19.9)
     jwt (2.6.0)
     logger (1.7.0)
     method_source (1.0.0)
@@ -126,7 +126,6 @@ GEM
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
-    webrick (1.8.2)
     yard (0.9.45)
     yard-thor (0.0.1)
       thor
