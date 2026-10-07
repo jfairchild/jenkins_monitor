@@ -16,6 +16,7 @@ The Ruby version in `mise.toml` must match the `FROM ruby:<version>` tag in the 
 ### Locally
 
 * docker build -t jenkins-monitor .
+* or `docker compose build` (Compose builds from the Dockerfile, so it uses the same Ruby version)
 
 ### Update Gemfile.lock
 

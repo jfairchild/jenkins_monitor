@@ -29,9 +29,10 @@ jobs:
             echo "::error::Dockerfile not found"
             exit 1
           fi
-          # Extract only the version from e.g. "FROM ruby:4.0.7-slim-bookworm AS build"
-          DOCKERFILE_RUBY_VERSION=$(sed -nE 's/^[[:space:]]*FROM[[:space:]]+(--platform=[^[:space:]]+[[:space:]]+)?ruby:([0-9]+(\.[0-9]+)*).*/\2/p' Dockerfile | head -n1)
-          if [ -z "$DOCKERFILE_RUBY_VERSION" ]; then
+          # Extract only the version from every ruby FROM line, e.g.
+          # "FROM ruby:4.0.7-slim-bookworm AS build" -> "4.0.7". Non-ruby images are ignored.
+          DOCKERFILE_RUBY_VERSIONS=$(sed -nE 's/^[[:space:]]*[Ff][Rr][Oo][Mm][[:space:]]+(--platform=[^[:space:]]+[[:space:]]+)?ruby:([0-9]+(\.[0-9]+)*).*/\2/p' Dockerfile | sort -u)
+          if [ -z "$DOCKERFILE_RUBY_VERSIONS" ]; then
             echo "::error::Could not extract Ruby version from Dockerfile FROM ruby:<version> line"
             exit 1
           fi
@@ -40,8 +41,14 @@ jobs:
             echo "::error::Could not determine the Ruby version installed by mise"
             exit 1
           fi
-          if [ "$DOCKERFILE_RUBY_VERSION" != "$MISE_RUBY_VERSION" ]; then
-            echo "::error::Dockerfile Ruby version ($DOCKERFILE_RUBY_VERSION) does not match mise-installed Ruby version ($MISE_RUBY_VERSION)"
+          MISMATCH=0
+          for version in $DOCKERFILE_RUBY_VERSIONS; do
+            if [ "$version" != "$MISE_RUBY_VERSION" ]; then
+              echo "::error::Dockerfile Ruby version ($version) does not match mise-installed Ruby version ($MISE_RUBY_VERSION)"
+              MISMATCH=1
+            fi
+          done
+          if [ "$MISMATCH" -ne 0 ]; then
             exit 1
           fi
           echo "Ruby versions match: $MISE_RUBY_VERSION"
