@@ -1,9 +1,6 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-# This workflow will download a prebuilt Ruby version, install dependencies and run tests with Rake
-# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+# Installs Ruby via mise (version pinned in mise.toml), verifies the installed
+# version matches the Dockerfile base image, installs gems and runs tests with Rake.
+# For more information see: https://github.com/jdx/mise-action
 
 name: Ruby
 
@@ -19,34 +16,52 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      RUBY_VERSION: '3.2'
 
     steps:
       - uses: actions/checkout@v6
-      - name: Verify Dockerfile Ruby version matches workflow
+      - name: Set up Ruby with mise
+        uses: jdx/mise-action@v5
+        with:
+          cache: true
+      - name: Verify Dockerfile Ruby version matches mise Ruby
         run: |
           if [ ! -f Dockerfile ]; then
-            echo "Error: Dockerfile not found"
+            echo "::error::Dockerfile not found"
             exit 1
           fi
-          DOCKERFILE_RUBY_VERSION=$(grep -o 'FROM ruby:[0-9.]*' Dockerfile | cut -d':' -f2)
-          if [ -z "$DOCKERFILE_RUBY_VERSION" ]; then
-            echo "Error: Could not extract Ruby version from Dockerfile"
+          # Extract only the version from every ruby FROM line, e.g.
+          # "FROM ruby:4.0.7-slim-bookworm AS build" -> "4.0.7". Non-ruby images are ignored.
+          DOCKERFILE_RUBY_VERSIONS=$(sed -nE 's/^[[:space:]]*[Ff][Rr][Oo][Mm][[:space:]]+(--platform=[^[:space:]]+[[:space:]]+)?ruby:([0-9]+(\.[0-9]+)*).*/\2/p' Dockerfile | sort -u)
+          if [ -z "$DOCKERFILE_RUBY_VERSIONS" ]; then
+            echo "::error::Could not extract Ruby version from Dockerfile FROM ruby:<version> line"
             exit 1
           fi
-          if [ "$DOCKERFILE_RUBY_VERSION" != "$RUBY_VERSION" ]; then
-            echo "Error: Dockerfile Ruby version ($DOCKERFILE_RUBY_VERSION) does not match workflow Ruby version ($RUBY_VERSION)"
+          MISE_RUBY_VERSION=$(mise exec -- ruby -e 'print RUBY_VERSION') || true
+          if [ -z "$MISE_RUBY_VERSION" ]; then
+            echo "::error::Could not determine the Ruby version installed by mise"
             exit 1
           fi
-          echo "Ruby versions match: $RUBY_VERSION"
-      - name: Set up Ruby
-        # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
-        # change this to (see https://github.com/ruby/setup-ruby#versioning):
-        # uses: ruby/setup-ruby@v1
-        uses: ruby/setup-ruby@v1
+          MISMATCH=0
+          for version in $DOCKERFILE_RUBY_VERSIONS; do
+            if [ "$version" != "$MISE_RUBY_VERSION" ]; then
+              echo "::error::Dockerfile Ruby version ($version) does not match mise-installed Ruby version ($MISE_RUBY_VERSION)"
+              MISMATCH=1
+            fi
+          done
+          if [ "$MISMATCH" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Ruby versions match: $MISE_RUBY_VERSION"
+      - name: Cache gems
+        uses: actions/cache@v4
         with:
-          ruby-version: ${{ env.RUBY_VERSION }}
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          path: vendor/bundle
+          key: gems-${{ runner.os }}-${{ hashFiles('mise.toml') }}-${{ hashFiles('Gemfile.lock') }}
+          restore-keys: |
+            gems-${{ runner.os }}-${{ hashFiles('mise.toml') }}-
+      - name: Install gems
+        run: |
+          bundle config set path vendor/bundle
+          bundle install --jobs 4
       - name: Run tests
         run: bundle exec rake
