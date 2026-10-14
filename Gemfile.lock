@@ -69,7 +69,7 @@ GEM
       rake
       rdoc
       semver
-    json (2.19.9)
+    json (3.0.2)
     jwt (2.10.3)
       base64
     logger (1.7.0)
