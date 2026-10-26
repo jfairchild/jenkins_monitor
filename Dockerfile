@@ -1,4 +1,4 @@
-FROM ruby:4.0.7
+FROM ruby:4.0.9
 ENV GEM_HOME="/usr/local/bundle"
 ENV PATH $GEM_HOME/bin:$GEM_HOME/gems/bin:$PATH
 
