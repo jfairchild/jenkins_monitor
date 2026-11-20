@@ -13,7 +13,7 @@ gem 'jenkins_api_client', '~> 2.3'
 group :development do
   gem 'jeweler', '>= 1.6.4'
   gem 'pry'
-  gem 'rspec', '~> 2.14.1'
+  gem 'rspec', '~> 3.13.2'
   gem 'simplecov'
   gem 'yard'
   gem 'yard-thor'
